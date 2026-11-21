@@ -35,7 +35,7 @@ As variáveis `VITE_*` são incluídas no bundle e não devem conter segredos. `
 - Atualizações de catálogo, estoque, carrinho, cotação e pedidos entre abas do mesmo navegador.
 - Layout responsivo com as artes fornecidas no projeto e fonte Roboto Mono.
 
-A tela **Atividade** é uma extensão demonstrativa do histórico de compras. Integração com redes sociais, recuperação de senha, conexão real de carteira, transferência on-chain e pagamento real não fazem parte do fluxo implementado. O escopo e o estado dos requisitos estão na [matriz do desafio](docs/REQUIREMENTS_MATRIX.md).
+A tela **Atividade** é uma extensão demonstrativa do histórico de compras. Integração com redes sociais, recuperação de senha, conexão real de carteira, transferência on-chain e pagamento real não fazem parte do fluxo implementado.
 
 ## Conta e cenários de demonstração
 
@@ -193,8 +193,6 @@ A configuração para Vercel usa `pnpm build:mock`, publica `dist` e habilita o 
 
 ## Referências
 
-- [Enunciado original](readme-github.md)
-- [Matriz do desafio](docs/REQUIREMENTS_MATRIX.md)
 - [Contratos REST e eventos](docs/API_CONTRACTS.md) e [contratos de comércio](docs/COMMERCE_CONTRACTS.md)
 - [Validação reproduzível](docs/VALIDATION.md) e [auditorias](docs/audits/README.md)
 - [Decisões ADR](docs/ADRs/)

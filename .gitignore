@@ -16,3 +16,13 @@ playwright-visual-report/
 
 playwright-public-report/
 .lighthouse-*/
+docs/audits/lighthouse/*-*.html
+docs/audits/lighthouse/*-*.json
+docs/audits/playwright/
+docs/audits/visual/
+docs/audits/responsive/
+docs/audits/clean-checkout.json
+docs/audits/clean-checkout.log
+docs/audits/clean-smoke/
+docs/audits/validation-summary.json
+

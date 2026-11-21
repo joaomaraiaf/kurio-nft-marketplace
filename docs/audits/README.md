@@ -13,9 +13,7 @@ Foram realizadas três medições por página/perfil, totalizando 12. Valores ab
 | Início | Desktop | 100 | 97 | 100 | 100 | 413 ms | 0.0000 | 0 ms |
 | Detalhe | Desktop | 100 | 97 | 100 | 100 | 494 ms | 0.0000 | 0 ms |
 
-**Todas as metas foram atingidas:** Performance ≥ 90, Acessibilidade ≥ 95, Boas práticas ≥ 95 e SEO ≥ 90 nos quatro grupos. `pnpm audit:lighthouse` terminou com código 0. As medianas são calculadas com as três execuções de cada grupo; as medições individuais permanecem nos relatórios, sem selecionar somente a melhor nota.
-
-Relatórios HTML de cada grupo: [início mobile](lighthouse/inicio-mobile-1.html), [detalhe mobile](lighthouse/detalhe-mobile-1.html), [início desktop](lighthouse/inicio-desktop-1.html), [detalhe desktop](lighthouse/detalhe-desktop-1.html). As execuções 2/3 e os JSON correspondentes estão na mesma pasta.
+**Todas as metas foram atingidas:** Performance ≥ 90, Acessibilidade ≥ 95, Boas práticas ≥ 95 e SEO ≥ 90 nos quatro grupos. `pnpm audit:lighthouse` terminou com código 0. As medianas são calculadas com as três execuções de cada grupo; os relatórios HTML/JSON detalhados são gerados localmente sob demanda (`pnpm audit:lighthouse`) e publicados como artefatos no workflow de CI ([`lighthouse.yml`](../../.github/workflows/lighthouse.yml)).
 
 ## Análise dos resultados
 
@@ -27,10 +25,10 @@ Estado persistido, sessões da aba, controles de rede e URLs filtradas preservam
 
 Axios e Socket.IO aguardam a interceptação na camada de transporte. O preload de imagem respeita o tamanho renderizado por rota. Permanecem habilitados WebP responsivo, fontes latinas locais, rotas/modais sob demanda e atualização em segundo plano sem deslocar conteúdo. O chunk MSW completo permanece no build, com cerca de 472 kB minificados/174 kB gzip.
 
-A série final mantém os presets oficiais e o throttling simulado, sem reduzir CPU/rede. FCP e Speed Index também são registrados no resumo JSON e no console. A execução remota da pipeline deve ser refeita com esta revisão; as evidências versionadas são locais e não comprovam uma URL pública.
+A série final mantém os presets oficiais e o throttling simulado, sem reduzir CPU/rede. FCP e Speed Index também são registrados em [summary.json](lighthouse/summary.json) e [summary.md](lighthouse/summary.md). A execução remota da pipeline valida cada PR; as evidências locais resumidas não substituem os testes da URL publicada.
 
 ## Reprodução limpa e testes
 
-[VALIDATION.md](../VALIDATION.md) descreve comandos, ambiente e baselines. O verificador de cópia limpa registra passos/códigos em `clean-checkout.json`, incluindo o resultado separado das metas Lighthouse. A reprodução local do smoke de publicação não substitui validação da URL pública.
+[VALIDATION.md](../VALIDATION.md) descreve comandos, ambiente e baselines. O verificador de cópia limpa (`pnpm verify:clean`) reproduz instalação, checks, build, preview e smoke de publicação.
 
-Revalidação: 101 testes Vitest, 117 E2E aprovados (9 variantes ignoradas), 12 comparações visuais sem atualizar baselines e cópia limpa aprovada com o mesmo hash do build auditado. O smoke Lighthouse da cópia limpa também atingiu as metas.
+Revalidação: 102 testes Vitest, 117 E2E aprovados (9 variantes ignoradas), 12 comparações visuais sem atualizar baselines e cópia limpa aprovada com o mesmo hash do build auditado. O smoke Lighthouse da cópia limpa também atingiu as metas.

@@ -7,7 +7,11 @@ import { useCart } from '@/features/cart/hooks/use-cart.hook';
 import type { WalletSlot } from '@/features/wallets/domain/entities/saved-wallet.entity';
 import { useWallets } from '@/features/wallets/hooks/use-wallets.hook';
 import { readPaymentDraft } from '../data/payment-draft.store';
-import { type PaymentFormValues, paymentFormSchema } from '../data/schemas/payment-form.schema';
+import {
+  type PaymentFormInput,
+  type PaymentFormValues,
+  paymentFormSchema,
+} from '../data/schemas/payment-form.schema';
 import { useCheckoutFlow } from './use-checkout-flow.hook';
 import { usePaymentDraft } from './use-payment-draft.hook';
 
@@ -15,7 +19,7 @@ export function usePaymentViewModel() {
   const { session } = useAuthSession();
   const [draft] = useState(() => (session ? readPaymentDraft(session.user.id) : undefined));
   const wallets = useWallets();
-  const form = useForm<PaymentFormValues>({
+  const form = useForm<PaymentFormInput, unknown, PaymentFormValues>({
     resolver: zodResolver(paymentFormSchema),
     defaultValues: {
       displayName: '',

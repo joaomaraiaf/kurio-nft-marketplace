@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
 
+function requirePresent<T>(value: T | null | undefined, label = 'element bounds'): T {
+  expect(value, label).not.toBeNull();
+  if (value == null) throw new Error(`Missing ${label}`);
+  return value;
+}
+
 test('abre a página inicial', async ({ page }) => {
   await page.goto('/');
   await expect(page).toHaveTitle('Kurio — Marketplace de NFTs');
@@ -27,12 +33,10 @@ test('mostra dois NFTs por linha com as colunas desencontradas no mobile', async
   const cards = page.getByRole('link', { name: /^Ver / });
   await expect(cards).toHaveCount(9);
 
-  const firstCard = await cards.nth(0).boundingBox();
-  const secondCard = await cards.nth(1).boundingBox();
-  expect(firstCard).not.toBeNull();
-  expect(secondCard).not.toBeNull();
-  expect(secondCard!.x).toBeGreaterThan(firstCard!.x);
-  expect(secondCard!.y - firstCard!.y).toBeGreaterThan(20);
+  const firstCard = requirePresent(await cards.nth(0).boundingBox(), 'first card');
+  const secondCard = requirePresent(await cards.nth(1).boundingBox(), 'second card');
+  expect(secondCard.x).toBeGreaterThan(firstCard.x);
+  expect(secondCard.y - firstCard.y).toBeGreaterThan(20);
 
   await expect(
     page.getByRole('textbox', { name: 'Buscar NFTs por nome ou artista' })
@@ -50,16 +54,17 @@ test('exibe paginação no catálogo do início', async ({ page }, testInfo) => 
   await expect(pagination).toBeVisible();
   await expect(cards).toHaveCount(9);
   if (testInfo.project.name === 'desktop') {
-    const paginationBounds = await pagination.boundingBox();
-    const featuredBounds = await page
-      .getByRole('heading', { name: 'NFT EM DESTAQUE' })
-      .locator('xpath=../..')
-      .boundingBox();
+    const paginationBounds = requirePresent(await pagination.boundingBox(), 'pagination');
+    const featuredBounds = requirePresent(
+      await page
+        .getByRole('heading', { name: 'NFT EM DESTAQUE' })
+        .locator('xpath=../..')
+        .boundingBox(),
+      'featured card'
+    );
 
-    expect(paginationBounds).not.toBeNull();
-    expect(featuredBounds).not.toBeNull();
-    expect(paginationBounds!.y + paginationBounds!.height).toBeCloseTo(
-      featuredBounds!.y + featuredBounds!.height,
+    expect(paginationBounds.y + paginationBounds.height).toBeCloseTo(
+      featuredBounds.y + featuredBounds.height,
       0
     );
   }
@@ -120,25 +125,30 @@ test('mantém os controles de compra estáveis ao trocar a edição e alinha as 
     const quantityButton = page.getByRole('button', { name: 'Diminuir quantidade' });
     const buyButton = page.getByRole('button', { name: 'Comprar', exact: true });
     const favoriteButton = page.getByRole('button', { name: 'Favoritar', exact: true });
-    const controlsBeforeSelection = await Promise.all([
-      quantityButton.boundingBox(),
-      buyButton.boundingBox(),
-      favoriteButton.boundingBox(),
-    ]);
+    const controlsBeforeSelection = (
+      await Promise.all([
+        quantityButton.boundingBox(),
+        buyButton.boundingBox(),
+        favoriteButton.boundingBox(),
+      ])
+    ).map((bounds, index) =>
+      requirePresent(bounds, `controle ${index} antes, viewport ${width}px`)
+    );
     const rating = page.getByText('19 avaliações de colecionadores').locator('xpath=..');
-    const ratingBounds = await rating.boundingBox();
-    const ratingRowBounds = await rating.locator('xpath=..').boundingBox();
+    const ratingBounds = requirePresent(
+      await rating.boundingBox(),
+      `avaliações, viewport ${width}px`
+    );
+    const ratingRowBounds = requirePresent(
+      await rating.locator('xpath=..').boundingBox(),
+      `linha de preço, viewport ${width}px`
+    );
     const documentPositionsBeforeSelection = await Promise.all(
-      controlsBeforeSelection.map((bounds) => page.evaluate((y) => y + window.scrollY, bounds!.y))
+      controlsBeforeSelection.map((bounds) => page.evaluate((y) => y + window.scrollY, bounds.y))
     );
 
-    expect(controlsBeforeSelection.every(Boolean), `controles antes, viewport ${width}px`).toBe(
-      true
-    );
-    expect(ratingBounds, `avaliações, viewport ${width}px`).not.toBeNull();
-    expect(ratingRowBounds, `linha de preço, viewport ${width}px`).not.toBeNull();
-    expect(ratingBounds!.x + ratingBounds!.width).toBeCloseTo(
-      ratingRowBounds!.x + ratingRowBounds!.width,
+    expect(ratingBounds.x + ratingBounds.width).toBeCloseTo(
+      ratingRowBounds.x + ratingRowBounds.width,
       0
     );
 
@@ -153,20 +163,21 @@ test('mantém os controles de compra estáveis ao trocar a edição e alinha as 
       scrollBeforeSelection
     );
     expect(documentPositionsAfterSelection).toEqual(documentPositionsBeforeSelection);
-    const controlsAfterSelection = await Promise.all([
-      quantityButton.boundingBox(),
-      buyButton.boundingBox(),
-      favoriteButton.boundingBox(),
-    ]);
-
-    expect(controlsAfterSelection.every(Boolean), `controles depois, viewport ${width}px`).toBe(
-      true
+    const controlsAfterSelection = (
+      await Promise.all([
+        quantityButton.boundingBox(),
+        buyButton.boundingBox(),
+        favoriteButton.boundingBox(),
+      ])
+    ).map((bounds, index) =>
+      requirePresent(bounds, `controle ${index} depois, viewport ${width}px`)
     );
+
     for (let index = 0; index < controlsBeforeSelection.length; index += 1) {
       expect(
-        controlsAfterSelection[index]!.y,
+        controlsAfterSelection[index].y,
         `posição do controle ${index}, viewport ${width}px`
-      ).toBeCloseTo(controlsBeforeSelection[index]!.y, 0);
+      ).toBeCloseTo(controlsBeforeSelection[index].y, 0);
     }
   }
 });
@@ -185,10 +196,10 @@ test('selecionar uma edição por toque não desloca a página', async ({ page }
   const positionsBeforeSelection = await Promise.all(
     controls.map((control) => control.evaluate((element) => element.getBoundingClientRect().top))
   );
-  const optionBounds = await editionOption.boundingBox();
+  const optionBounds = requirePresent(await editionOption.boundingBox(), 'edition option');
   await page.touchscreen.tap(
-    optionBounds!.x + optionBounds!.width / 2,
-    optionBounds!.y + optionBounds!.height / 2
+    optionBounds.x + optionBounds.width / 2,
+    optionBounds.y + optionBounds.height / 2
   );
   await expect(editionOption).toHaveAttribute('aria-pressed', 'true');
   expect(await page.evaluate(() => window.scrollY)).toBe(scrollBeforeSelection);
@@ -226,11 +237,9 @@ test('exibe a navegação inferior no mobile e permite abrir o catálogo e o car
   await page.goto('/');
   const navigation = page.getByRole('navigation', { name: 'Navegação inferior' });
   await expect(navigation).toBeVisible();
-  const navigationBounds = await navigation.boundingBox();
-  const viewport = page.viewportSize();
-  expect(navigationBounds).not.toBeNull();
-  expect(viewport).not.toBeNull();
-  expect(navigationBounds!.y + navigationBounds!.height).toBeCloseTo(viewport!.height, 0);
+  const navigationBounds = requirePresent(await navigation.boundingBox(), 'bottom navigation');
+  const viewport = requirePresent(page.viewportSize(), 'viewport');
+  expect(navigationBounds.y + navigationBounds.height).toBeCloseTo(viewport.height, 0);
   await expect(navigation.getByRole('link', { name: 'Início' })).toHaveAttribute(
     'aria-current',
     'page'
@@ -252,21 +261,21 @@ test('alinha a largura do menu e do conteúdo com a largura do footer', async ({
 
   for (const route of ['/', '/market/nft-001']) {
     await page.goto(route);
-    const header = await page.locator('header').first().boundingBox();
-    const footer = await page.locator('#footer').boundingBox();
-    const content = await (route === '/'
-      ? page.locator('#catalogo > div > div').first()
-      : page.getByRole('navigation', { name: 'Trilha de navegação' }).locator('xpath=..')
-    ).boundingBox();
-    const expectedWidth = footer?.width;
+    const header = requirePresent(await page.locator('header').first().boundingBox(), 'header');
+    const footer = requirePresent(await page.locator('#footer').boundingBox(), 'footer');
+    const content = requirePresent(
+      await (route === '/'
+        ? page.locator('#catalogo > div > div').first()
+        : page.getByRole('navigation', { name: 'Trilha de navegação' }).locator('xpath=..')
+      ).boundingBox(),
+      'content'
+    );
+    const expectedWidth = footer.width;
 
-    expect(header).not.toBeNull();
-    expect(footer).not.toBeNull();
-    expect(content).not.toBeNull();
-    expect(header!.x).toBeCloseTo(footer!.x, 0);
-    expect(header!.width).toBeCloseTo(expectedWidth!, 0);
-    expect(content!.x).toBeCloseTo(footer!.x, 0);
-    expect(content!.width).toBeCloseTo(expectedWidth!, 0);
+    expect(header.x).toBeCloseTo(footer.x, 0);
+    expect(header.width).toBeCloseTo(expectedWidth, 0);
+    expect(content.x).toBeCloseTo(footer.x, 0);
+    expect(content.width).toBeCloseTo(expectedWidth, 0);
   }
 });
 

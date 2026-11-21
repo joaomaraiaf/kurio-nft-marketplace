@@ -8,6 +8,7 @@ import {
   MarketplacePageContainer,
 } from '@/core/components/layout/marketplace-page-container';
 import { Button } from '@/core/components/ui/button';
+import { AccountMenu } from '@/features/auth/components/account-menu';
 import { useCart } from '../hooks/use-cart.hook';
 import { CartItemRow } from './cart-item-row';
 import { CartMobileHeader } from './cart-mobile-header';
@@ -32,6 +33,7 @@ export function CartView() {
             searchValue={searchValue}
             onSearchChange={setSearchValue}
             cartItemCount={cart.items.length}
+            accountSlot={<AccountMenu />}
             hideHeaderOnMobile
             hideBottomNavigation
           />

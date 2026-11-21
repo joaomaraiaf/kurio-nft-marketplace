@@ -18,7 +18,7 @@ export function evaluateQuote(
   const nftVersions: Record<string, number> = {};
   const items = cart.items.map((selection) => {
     const nft = state.catalog?.find((item) => item.id === selection.nftId);
-    if (!nft || !nft.editions.some((edition) => edition.id === selection.editionId)) {
+    if (!nft?.editions.some((edition) => edition.id === selection.editionId)) {
       issues.push({
         code: 'SOLD_OUT',
         nftId: selection.nftId,

@@ -5,7 +5,7 @@ import { CartCouponField } from '@/features/cart/components/cart-coupon-field';
 import type { CartItem } from '@/features/cart/domain/entities/cart-item.entity';
 import { formatWeiAsEth, parseEthToWei } from '@/features/cart/domain/entities/cart-totals';
 import { useCart } from '@/features/cart/hooks/use-cart.hook';
-import type { PaymentFormValues } from '../data/schemas/payment-form.schema';
+import type { PaymentFormInput, PaymentFormValues } from '../data/schemas/payment-form.schema';
 import type { usePaymentViewModel } from '../hooks/use-payment-view-model.hook';
 import { PaymentCheckoutStatus } from './payment-checkout-status';
 
@@ -15,7 +15,7 @@ interface PaymentOrderSummaryProps {
   estimatedFeeWei: bigint;
   totalWei: bigint;
   discountWei: bigint;
-  control: Control<PaymentFormValues>;
+  control: Control<PaymentFormInput, unknown, PaymentFormValues>;
   checkout: ReturnType<typeof usePaymentViewModel>['checkout'];
 }
 

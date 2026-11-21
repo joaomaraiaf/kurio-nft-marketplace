@@ -154,8 +154,9 @@ export function createCommerceHandlers(
     });
   const favorites = (request: Request, nftId?: string, add = false) =>
     run('favorites', request, (owner) => {
+      if (!owner) return fail(401, 'SESSION_REQUIRED', 'Entre novamente para continuar.');
       const state = store.read();
-      const userId = owner!;
+      const userId = owner;
       const result = state.favorites[userId] ?? { userId, version: 1, nftIds: [] };
       if (nftId) {
         if (!catalog.read().nfts.some((nft) => nft.id === nftId))

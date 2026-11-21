@@ -1,9 +1,12 @@
 import { useEffect } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { clearPaymentDraft, writePaymentDraft } from '../data/payment-draft.store';
-import type { PaymentFormValues } from '../data/schemas/payment-form.schema';
+import type { PaymentFormInput, PaymentFormValues } from '../data/schemas/payment-form.schema';
 
-export function usePaymentDraft(form: UseFormReturn<PaymentFormValues>, userId?: string) {
+export function usePaymentDraft(
+  form: UseFormReturn<PaymentFormInput, unknown, PaymentFormValues>,
+  userId?: string
+) {
   useEffect(() => {
     if (!userId) return;
     const subscription = form.watch(() => writePaymentDraft(userId, form.getValues()));

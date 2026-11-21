@@ -42,7 +42,8 @@ function input(): CompletePurchaseInput {
     .read()
     .nfts.find((item) => item.editions.some((edition) => edition.available > 1));
   if (!nft) throw new Error('Missing fixture');
-  const edition = nft.editions.find((item) => item.available > 1)!;
+  const edition = nft.editions.find((item) => item.available > 1);
+  if (!edition) throw new Error('Missing edition fixture');
   return {
     attemptId: crypto.randomUUID(),
     walletName: 'MetaMask',

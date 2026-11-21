@@ -1,4 +1,5 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router';
+import { AppErrorBoundary } from '@/core/components/app-error-boundary';
 import { NotFoundPage } from '@/core/components/not-found-page';
 import { AuthSessionProvider } from '@/features/auth/components/auth-session-provider';
 import { LoginDialogProvider } from '@/features/auth/components/login-dialog-provider';
@@ -22,5 +23,6 @@ export const rootRoute = createRootRoute({
       </AuthSessionProvider>
     </PaymentReceiptProvider>
   ),
+  errorComponent: AppErrorBoundary,
   notFoundComponent: NotFoundPage,
 });

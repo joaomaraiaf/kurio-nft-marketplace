@@ -79,7 +79,7 @@ export function resolveOrders(state: CommerceState, now: number) {
         'PAYMENT_REFUSED',
         'O pagamento foi recusado pela carteira. Nenhum item foi removido.'
       );
-    if (!connection || connection.status !== 'connected')
+    if (connection?.status !== 'connected')
       reject('WALLET_DISCONNECTED', 'A carteira foi desconectada antes da confirmação.');
     if (
       !quote ||
@@ -108,13 +108,17 @@ export function resolveOrders(state: CommerceState, now: number) {
         rejection: reason,
       };
     else {
+      const catalog = state.catalog ?? [];
       const changed = new Set<string>();
       for (const item of order.snapshot.items) {
-        const nft = state.catalog!.find((nft) => nft.id === item.nftId)!;
-        nft.editions.find((edition) => edition.id === item.editionId)!.available -= item.quantity;
-        changed.add(nft.id);
+        const nft = catalog.find((nft) => nft.id === item.nftId);
+        const edition = nft?.editions.find((edition) => edition.id === item.editionId);
+        if (nft && edition) {
+          edition.available -= item.quantity;
+          changed.add(nft.id);
+        }
       }
-      for (const nft of state.catalog!)
+      for (const nft of catalog)
         if (changed.has(nft.id)) {
           nft.version++;
           nft.updatedAt = updatedAt;

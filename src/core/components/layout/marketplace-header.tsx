@@ -1,9 +1,8 @@
 import { Link } from '@tanstack/react-router';
 import { Search, ShoppingCart, SlidersHorizontal } from 'lucide-react';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Button } from '@/core/components/ui/button';
 import { Input } from '@/core/components/ui/input';
-import { AccountMenu } from '@/features/auth/components/account-menu';
 import { MarketplaceBottomNavigation } from './marketplace-bottom-navigation';
 
 type MenuItem = 'home' | 'market' | 'creators' | 'learn';
@@ -13,6 +12,8 @@ interface MarketplaceHeaderProps {
   searchValue: string;
   onSearchChange: (value: string) => void;
   cartItemCount: number;
+  accountSlot?: ReactNode;
+  compactAccountSlot?: ReactNode;
   mobileCatalogSearch?: boolean;
   onOpenFilters?: () => void;
   hideHeaderOnMobile?: boolean;
@@ -31,6 +32,8 @@ export function MarketplaceHeader({
   searchValue,
   onSearchChange,
   cartItemCount,
+  accountSlot,
+  compactAccountSlot,
   mobileCatalogSearch = false,
   onOpenFilters,
   hideHeaderOnMobile = false,
@@ -132,9 +135,7 @@ export function MarketplaceHeader({
                 </span>
               )}
             </Link>
-            <div className='hidden md:block'>
-              <AccountMenu />
-            </div>
+            {accountSlot && <div className='hidden md:block'>{accountSlot}</div>}
           </div>
         </div>
         {mobileCatalogSearch && (
@@ -171,6 +172,7 @@ export function MarketplaceHeader({
         <MarketplaceBottomNavigation
           cartItemCount={cartItemCount}
           includeTablet={mobileCatalogSearch}
+          accountSlot={compactAccountSlot ?? accountSlot}
         />
       )}
     </>

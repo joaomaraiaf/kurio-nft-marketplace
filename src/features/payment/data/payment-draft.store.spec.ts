@@ -1,10 +1,10 @@
 import { beforeEach, expect, it } from 'vitest';
 import { clearPaymentDraft, readPaymentDraft, writePaymentDraft } from './payment-draft.store';
-import type { PaymentFormValues } from './schemas/payment-form.schema';
+import type { PaymentFormInput } from './schemas/payment-form.schema';
 
 const owner = '11111111-1111-4111-8111-111111111111';
 const other = '22222222-2222-4222-8222-222222222222';
-const partialForm: PaymentFormValues = {
+const partialForm: PaymentFormInput = {
   displayName: 'Nome privado',
   username: '',
   email: 'incompleto@',

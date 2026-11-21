@@ -11,13 +11,11 @@ interface RealtimeProviderProps {
 export function RealtimeProvider({ socket: suppliedSocket, url, children }: RealtimeProviderProps) {
   const [createdSocket, setCreatedSocket] = useState<RealtimeSocket | null>(null);
   const [failed, setFailed] = useState(false);
-  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     setCreatedSocket(null);
-    if (suppliedSocket !== undefined || !url) return;
+    if (suppliedSocket !== undefined || !url || failed) return;
     let live = true;
     let instance: RealtimeSocket | null = null;
-    setFailed(false);
     // The transport boundary waits for MSW; loading never blocks the first paint.
     void createSocketClient(url)
       .then((socket) => {
@@ -32,7 +30,7 @@ export function RealtimeProvider({ socket: suppliedSocket, url, children }: Real
       live = false;
       instance?.disconnect();
     };
-  }, [suppliedSocket, url, attempt]);
+  }, [suppliedSocket, url, failed]);
   const socket = suppliedSocket !== undefined ? suppliedSocket : createdSocket;
   useEffect(() => {
     socket?.connect();
@@ -45,11 +43,7 @@ export function RealtimeProvider({ socket: suppliedSocket, url, children }: Real
       {failed && (
         <div role='alert' className='bg-[#241612] p-3 text-sm text-[#CFB28C]'>
           Não foi possível iniciar as atualizações em tempo real.{' '}
-          <button
-            type='button'
-            className='underline'
-            onClick={() => setAttempt((value) => value + 1)}
-          >
+          <button type='button' className='underline' onClick={() => setFailed(false)}>
             Tentar conectar novamente
           </button>
         </div>

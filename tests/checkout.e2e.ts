@@ -31,9 +31,10 @@ test('recupera pedido pendente após refresh e carrega o mesmo comprovante pela 
     page.getByRole('heading', { name: 'Seus NFTs agora estão na sua carteira' })
   ).toBeVisible();
   const hash = await page.locator('[title^="0x"]').first().getAttribute('title');
+  expect(hash).toBeTruthy();
   await page.reload();
   await expect(page).toHaveURL(url);
-  await expect(page.locator('[title^="0x"]').first()).toHaveAttribute('title', hash!);
+  await expect(page.locator('[title^="0x"]').first()).toHaveAttribute('title', hash ?? '');
   expect(await page.evaluate(async () => (await (await fetch('/api/orders')).json()).length)).toBe(
     1
   );

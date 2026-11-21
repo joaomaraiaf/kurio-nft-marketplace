@@ -34,7 +34,8 @@ it('notifica somente após persistir, sem conteúdo privado no canal, e encerra 
   expect(sockets.emitNftUpdated).toHaveBeenCalledTimes(36);
   expect(channel.postMessage).toHaveBeenCalledTimes(1);
   const change = store.read();
-  change.catalog![0].version++;
+  if (!change.catalog?.[0]) throw new Error('Missing catalog fixture');
+  change.catalog[0].version++;
   failing = true;
   expect(() => store.write(change)).toThrow('Full');
   expect(channel.postMessage).toHaveBeenCalledTimes(1);

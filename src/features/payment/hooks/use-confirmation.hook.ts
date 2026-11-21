@@ -20,8 +20,9 @@ export function useConfirmation() {
     retry: false,
     meta: { private: true },
     queryFn: async ({ signal }) => {
+      if (!id) throw new Error('Pedido não encontrado.');
       try {
-        return await service.getReceipt(id!, signal);
+        return await service.getReceipt(id, signal);
       } catch (error) {
         onSessionError(error);
         throw error;

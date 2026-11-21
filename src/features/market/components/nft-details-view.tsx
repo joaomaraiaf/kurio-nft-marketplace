@@ -10,6 +10,7 @@ import {
 import { Button } from '@/core/components/ui/button';
 import { Skeleton } from '@/core/components/ui/skeleton';
 import { useMobileViewport } from '@/core/hooks/use-mobile-viewport.hook';
+import { AccountMenu } from '@/features/auth/components/account-menu';
 import { useCart } from '@/features/cart/hooks/use-cart.hook';
 import { useMarketView } from '../hooks/use-market-view.hook';
 import { NftDescription } from './nft-description';
@@ -64,6 +65,8 @@ export function NftDetailsView() {
             searchValue={searchValue}
             onSearchChange={setSearchValue}
             cartItemCount={cart.items.length}
+            accountSlot={<AccountMenu />}
+            compactAccountSlot={<AccountMenu compact />}
           />
           <div className='flex flex-col gap-3'>
             <nav aria-label='Trilha de navegação' className='text-sm font-bold'>

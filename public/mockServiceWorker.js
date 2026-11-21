@@ -33,10 +33,6 @@ addEventListener('message', async function (event) {
     return
   }
 
-  if (event.origin && event.origin !== self.location.origin) {
-    return
-  }
-
   const allClients = await self.clients.matchAll({
     type: 'window',
   })

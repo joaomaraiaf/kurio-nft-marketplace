@@ -1,11 +1,12 @@
 import { Link, useLocation } from '@tanstack/react-router';
 import { Heart, House, ScanLine, ShoppingCart } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { toast } from 'sonner';
-import { AccountMenu } from '@/features/auth/components/account-menu';
 
 interface MarketplaceBottomNavigationProps {
   cartItemCount: number;
   includeTablet?: boolean;
+  accountSlot?: ReactNode;
 }
 
 const homeSearch = { page: 1, limit: 9, search: '', sort: 'newest' } as const;
@@ -13,6 +14,7 @@ const homeSearch = { page: 1, limit: 9, search: '', sort: 'newest' } as const;
 export function MarketplaceBottomNavigation({
   cartItemCount,
   includeTablet = false,
+  accountSlot,
 }: MarketplaceBottomNavigationProps) {
   const { pathname } = useLocation();
   const activeSection =
@@ -90,7 +92,7 @@ export function MarketplaceBottomNavigation({
         </Link>
 
         <div className='grid h-full place-items-center [&_button]:text-[#CFB28C] [&_button:hover]:text-[#E89B55]'>
-          <AccountMenu compact />
+          {accountSlot}
         </div>
       </div>
     </nav>

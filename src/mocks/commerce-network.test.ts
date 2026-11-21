@@ -43,12 +43,12 @@ const bruno = '22222222-2222-4222-8222-222222222222';
 const guestA = crypto.randomUUID();
 const guestB = crypto.randomUUID();
 const cartA = new HttpCartRepository(apiA, guestA, alice);
-const cartB = new HttpCartRepository(apiB, guestB, bruno);
 const visitorA = new HttpCartRepository(apiA, guestA, null);
 const visitorB = new HttpCartRepository(apiB, guestB, null);
 const selection = () => {
   const nft = catalog.read().nfts[0];
-  const edition = nft.editions.find((edition) => edition.available >= 3)!;
+  const edition = nft.editions.find((edition) => edition.available >= 3);
+  if (!edition) throw new Error('Missing edition fixture');
   return { nftId: nft.id, editionId: edition.id, quantity: 1 };
 };
 const loginA = () =>

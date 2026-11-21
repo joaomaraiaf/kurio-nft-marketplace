@@ -1,19 +1,24 @@
 import { z } from 'zod';
-import { type PaymentFormValues, paymentFormSchema } from './schemas/payment-form.schema';
+import {
+  type PaymentFormInput,
+  paymentFormSchema,
+  paymentNetworkSchema,
+  paymentWalletTypeSchema,
+} from './schemas/payment-form.schema';
 
 const prefix = 'kurio:payment-draft:v1:';
 const draftValuesSchema = paymentFormSchema.extend({
   displayName: z.string(),
-  network: z.string(),
+  network: z.union([paymentNetworkSchema, z.literal('')]),
   walletAddress: z.string(),
-  walletType: z.string(),
+  walletType: z.union([paymentWalletTypeSchema, z.literal('')]),
   email: z.string(),
   username: z.string(),
   profileName: z.string(),
   note: z.string(),
 });
 const schema = z.object({ userId: z.uuid(), updatedAt: z.number(), values: draftValuesSchema });
-export function readPaymentDraft(userId: string): PaymentFormValues | undefined {
+export function readPaymentDraft(userId: string): PaymentFormInput | undefined {
   try {
     const raw = window.sessionStorage.getItem(prefix + userId);
     if (!raw) return;
@@ -24,7 +29,7 @@ export function readPaymentDraft(userId: string): PaymentFormValues | undefined 
     return;
   }
 }
-export function writePaymentDraft(userId: string, values: PaymentFormValues) {
+export function writePaymentDraft(userId: string, values: PaymentFormInput) {
   try {
     window.sessionStorage.setItem(
       prefix + userId,

@@ -41,12 +41,12 @@ export function createCheckoutHandlers(
           (request.headers.has('X-Expected-User') &&
             request.headers.get('X-Expected-User') !== owner)
         )
-          checkoutFail(401, 'SESSION_REQUIRED', 'Entre novamente para continuar.');
+          return checkoutFail(401, 'SESSION_REQUIRED', 'Entre novamente para continuar.');
         const state = commerce.read();
         state.catalog ??= catalog.read().nfts;
         migrateActivities(state, auth);
         resolveOrders(state, auth.now());
-        const result = await action(state, owner!);
+        const result = await action(state, owner);
         if (auth.read().session?.userId !== owner)
           checkoutFail(401, 'SESSION_REQUIRED', 'Sua sessão mudou. Entre novamente.');
         commerce.write(state);
@@ -201,19 +201,21 @@ export function createCheckoutHandlers(
     http.post(`${apiBase}/wallet-connections`, ({ request }) =>
       run(request, async (state, owner) => {
         const input = walletConnectionInputSchema.parse(await request.json().catch(() => null));
-        const account = auth.read().accounts.find((account) => account.user.id === owner)!;
+        const account = auth.read().accounts.find((account) => account.user.id === owner);
+        if (!account)
+          return checkoutFail(401, 'SESSION_REQUIRED', 'Entre novamente para continuar.');
         const wallet =
           input.walletSlot === 'secondary' && account.wallets.secondarySameAsPrimary
             ? account.wallets.primary
             : account.wallets[input.walletSlot];
         if (!wallet)
-          checkoutFail(
+          return checkoutFail(
             422,
             'WALLET_REQUIRED',
             'Cadastre e selecione uma carteira antes de conectar.'
           );
-        if (wallet!.network !== input.network)
-          checkoutFail(
+        if (wallet.network !== input.network)
+          return checkoutFail(
             422,
             'NETWORK_MISMATCH',
             'A rede da carteira deve corresponder à rede selecionada.'
@@ -222,7 +224,7 @@ export function createCheckoutHandlers(
           ...input,
           id: crypto.randomUUID(),
           userId: owner,
-          walletAddress: wallet!.walletAddress,
+          walletAddress: wallet.walletAddress,
           status: state.checkoutScenario.refuseConnection
             ? ('refused' as const)
             : ('connected' as const),

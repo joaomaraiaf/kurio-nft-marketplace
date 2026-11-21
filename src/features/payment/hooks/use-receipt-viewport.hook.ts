@@ -6,6 +6,7 @@ export function useReceiptViewport(hasReceipt: boolean) {
   const [scale, setScale] = useState(1);
 
   useLayoutEffect(() => {
+    if (!hasReceipt) return;
     const viewport = viewportRef.current;
     const scene = sceneRef.current;
     if (!viewport || !scene) return;

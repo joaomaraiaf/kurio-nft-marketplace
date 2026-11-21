@@ -9,6 +9,7 @@ import {
 } from '@/core/components/layout/marketplace-page-container';
 import { Button } from '@/core/components/ui/button';
 import { useMobileViewport } from '@/core/hooks/use-mobile-viewport.hook';
+import { AccountMenu } from '@/features/auth/components/account-menu';
 import { CartRequestState } from '@/features/cart/components/cart-request-state';
 import { useCart } from '@/features/cart/hooks/use-cart.hook';
 import { usePaymentViewModel } from '../hooks/use-payment-view-model.hook';
@@ -45,6 +46,8 @@ export function PaymentView() {
             searchValue={searchValue}
             onSearchChange={setSearchValue}
             cartItemCount={cart.items.length}
+            accountSlot={<AccountMenu />}
+            compactAccountSlot={<AccountMenu compact />}
           />
 
           <div className='flex flex-col gap-8'>

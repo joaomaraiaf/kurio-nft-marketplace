@@ -5,6 +5,7 @@ import {
   MARKETPLACE_FULL_WIDTH_CLASS,
   MarketplacePageContainer,
 } from '@/core/components/layout/marketplace-page-container';
+import { AccountMenu } from '@/features/auth/components/account-menu';
 import { useCart } from '@/features/cart/hooks/use-cart.hook';
 import {
   CATALOG_FEATURED_IMAGE,
@@ -54,6 +55,8 @@ export function CatalogView() {
             searchValue={searchValue}
             onSearchChange={setSearchValue}
             cartItemCount={cart.items.length}
+            accountSlot={<AccountMenu />}
+            compactAccountSlot={<AccountMenu compact />}
             mobileCatalogSearch
             onOpenFilters={() => setFiltersOpen(true)}
           />

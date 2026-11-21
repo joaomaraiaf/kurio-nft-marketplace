@@ -4,6 +4,7 @@ import { MarketplaceHeader } from '@/core/components/layout/marketplace-header';
 import { MarketplacePageContainer } from '@/core/components/layout/marketplace-page-container';
 import { Button } from '@/core/components/ui/button';
 import { Skeleton } from '@/core/components/ui/skeleton';
+import { AccountMenu } from '@/features/auth/components/account-menu';
 import { useAuthSession } from '@/features/auth/hooks/use-auth-session.hook';
 import { useLoginDialog } from '@/features/auth/hooks/use-login-dialog.hook';
 import { useCart } from '@/features/cart/hooks/use-cart.hook';
@@ -29,6 +30,8 @@ export function AccountPage({ activeItem, children, allowGuest = false }: Accoun
           searchValue={searchValue}
           onSearchChange={setSearchValue}
           cartItemCount={cart.items.length}
+          accountSlot={<AccountMenu />}
+          compactAccountSlot={<AccountMenu compact />}
         />
         {isLoading ? (
           <Skeleton className='h-[40rem] w-full' />

@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type UseFormReturn, useWatch } from 'react-hook-form';
 import { ApiError } from '@/core/api/api-error';
 import { useAppMutation } from '@/core/hooks/use-app-mutation';
@@ -23,7 +23,11 @@ import type {
 import { useWalletActions, WALLETS_QUERY_KEY } from '@/features/wallets/hooks/use-wallets.hook';
 import { walletsUseCase } from '@/features/wallets/wallets.dependencies';
 import { clearPaymentDraft } from '../data/payment-draft.store';
-import type { PaymentFormValues } from '../data/schemas/payment-form.schema';
+import {
+  type PaymentFormInput,
+  type PaymentFormValues,
+  paymentNetworkSchema,
+} from '../data/schemas/payment-form.schema';
 import type { WalletConnection, WalletNetwork } from '../domain/entities/wallet-connection.entity';
 import { createWalletConnectionUseCase } from '../payment.dependencies';
 
@@ -37,7 +41,7 @@ interface ConnectWalletInput {
   walletAddress: string;
 }
 
-export function useCheckoutFlow(form: UseFormReturn<PaymentFormValues>) {
+export function useCheckoutFlow(form: UseFormReturn<PaymentFormInput, unknown, PaymentFormValues>) {
   const { session, refreshSession } = useAuthSession();
   const ownerId = session?.user.id ?? '';
   const cart = useCart();
@@ -56,11 +60,12 @@ export function useCheckoutFlow(form: UseFormReturn<PaymentFormValues>) {
   const provider = useWatch({ control: form.control, name: 'walletProvider' });
   const secondary = useWatch({ control: form.control, name: 'useSecondaryWallet' });
   const address = useWatch({ control: form.control, name: 'walletAddress' });
-  const network: WalletNetwork | null = ['ethereum', 'polygon', 'solana'].includes(networkValue)
-    ? (networkValue as WalletNetwork)
-    : null;
-  const active = () =>
-    client.getQueryData<AuthSession | null>(AUTH_SESSION_QUERY_KEY)?.user.id === ownerId;
+  const parsedNetwork = paymentNetworkSchema.safeParse(networkValue);
+  const network: WalletNetwork | null = parsedNetwork.success ? parsedNetwork.data : null;
+  const active = useCallback(
+    () => client.getQueryData<AuthSession | null>(AUTH_SESSION_QUERY_KEY)?.user.id === ownerId,
+    [client, ownerId]
+  );
   const connected =
     connection?.status === 'connected' &&
     connection.network === network &&
@@ -75,12 +80,15 @@ export function useCheckoutFlow(form: UseFormReturn<PaymentFormValues>) {
     retry: false,
     meta: { private: true },
     queryFn: async ({ signal }) => {
+      if (!cart.id || cart.version === undefined || !network) {
+        throw new Error('Dados do carrinho ou rede indisponíveis para cotação.');
+      }
       try {
         const quote = await quotes.create(
           {
-            cartId: cart.id!,
-            cartVersion: cart.version!,
-            network: network!,
+            cartId: cart.id,
+            cartVersion: cart.version,
+            network,
             previousQuoteId: previousQuote.current?.id,
           },
           signal
@@ -103,21 +111,22 @@ export function useCheckoutFlow(form: UseFormReturn<PaymentFormValues>) {
   const quoteRef = useRef(quote);
   quoteRef.current = quote;
   const handled = useRef<string | null>(null);
+  const { complete: completeAttempt, order: attemptOrder } = attempt;
   useEffect(() => {
-    const order = attempt.order;
-    if (!order || order.status !== 'confirmed' || handled.current === order.id || !active()) return;
-    handled.current = order.id;
-    rememberOrder(ownerId, order.id);
+    if (attemptOrder?.status !== 'confirmed' || handled.current === attemptOrder.id || !active())
+      return;
+    handled.current = attemptOrder.id;
+    rememberOrder(ownerId, attemptOrder.id);
     clearPaymentDraft(ownerId);
-    attempt.complete();
+    completeAttempt();
     void Promise.all([
       client.invalidateQueries({ queryKey: ['cart', ownerId] }),
       client.invalidateQueries({ queryKey: ['catalog'] }),
       client.invalidateQueries({ queryKey: ['market'] }),
       client.invalidateQueries({ queryKey: ['activity', ownerId] }),
     ]);
-    void navigate({ to: '/payment/confirmation', search: { orderId: order.id } });
-  });
+    void navigate({ to: '/payment/confirmation', search: { orderId: attemptOrder.id } });
+  }, [active, attemptOrder, client, completeAttempt, navigate, ownerId]);
   const connect = useAppMutation({
     mutationKey: [...CHECKOUT_MUTATION_KEY, ownerId, 'connect'],
     retry: false,
@@ -209,11 +218,11 @@ export function useCheckoutFlow(form: UseFormReturn<PaymentFormValues>) {
       const wallet: SavedWallet = {
         displayName: values.displayName,
         walletAlias: slot === 'primary' ? 'Principal' : 'Secundária',
-        network: values.network as WalletNetwork,
+        network: values.network,
         profileName: values.profileName,
         walletAddress: values.walletAddress.trim(),
         secondaryWallet: values.secondaryWallet,
-        walletType: values.walletType as SavedWallet['walletType'],
+        walletType: values.walletType,
         referralCode: values.referralCode,
         email: values.email,
         ensName: values.ensName,
@@ -271,7 +280,7 @@ export function useCheckoutFlow(form: UseFormReturn<PaymentFormValues>) {
         connected && connection
           ? await wallets.get(connection.id)
           : await connect.mutateAsync({
-              network: network!,
+              network,
               provider: values.walletProvider,
               walletSlot,
               walletAddress: values.walletAddress.trim(),

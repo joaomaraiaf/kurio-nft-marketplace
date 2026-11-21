@@ -34,7 +34,8 @@ const alice = '11111111-1111-4111-8111-111111111111';
 function Harness() {
   const cart = useCart();
   const nft = catalog.read().nfts[0];
-  const edition = nft.editions.find((item) => item.available >= 2)!;
+  const edition = nft.editions.find((item) => item.available >= 2);
+  if (!edition) throw new Error('Missing edition fixture');
   return (
     <>
       <output aria-label='Quantidade'>{cart.totalQuantity}</output>

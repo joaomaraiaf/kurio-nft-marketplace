@@ -98,9 +98,10 @@ export function createNetworkControls(
         rule.times -= 1;
         save();
         await delay(rule.delayMs);
-        if (rule.gate && !released.has(rule.gate))
+        const gate = rule.gate;
+        if (gate && !released.has(gate))
           await new Promise<void>((resolve) => {
-            waiting.set(rule.gate!, [...(waiting.get(rule.gate!) ?? []), resolve]);
+            waiting.set(gate, [...(waiting.get(gate) ?? []), resolve]);
           });
         if (rule.status === 0) return HttpResponse.error();
         if (rule.status !== 200)

@@ -1,4 +1,4 @@
-# Arquitetura do Jungle NFT Marketplace
+# Arquitetura do Kurio NFT Marketplace
 
 ## Organização
 

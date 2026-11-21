@@ -23,7 +23,8 @@ export function LoginDialog({ open, onOpenChange, onRestoreFocus }: LoginDialogP
   const isSignup = mode === 'signup';
   useEffect(() => {
     if (!open) setMode('login');
-    if (open) contentRef.current?.querySelector('input')?.focus();
+    else if (mode === 'login' || mode === 'signup')
+      contentRef.current?.querySelector('input')?.focus();
   }, [open, mode]);
   return (
     <Dialog

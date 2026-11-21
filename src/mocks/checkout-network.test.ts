@@ -123,10 +123,18 @@ it('cria uma vez por chave, detecta conflito e não fornece recibo pendente', as
   ).rejects.toMatchObject({ status: 409, response: { code: 'IDEMPOTENCY_CONFLICT' } });
   expect((await a.orders.list()).length).toBe(1);
 });
+function requireDefined<T>(value: T | null | undefined, label = 'fixture'): T {
+  if (value == null) throw new Error(`Missing ${label}`);
+  return value;
+}
+
 it('permite cotar NFTs em outra rede e exige que a carteira corresponda à cotação', async () => {
   const accountState = authA.read();
-  accountState.accounts.find((account) => account.user.id === alice)!.wallets.primary!.network =
-    'polygon';
+  const aliceAccount = requireDefined(
+    accountState.accounts.find((account) => account.user.id === alice),
+    'alice account'
+  );
+  requireDefined(aliceAccount.wallets.primary, 'primary wallet').network = 'polygon';
   authA.write(accountState);
 
   const cart = await a.cart.add({ nftId: 'nft-001', editionId: 'standard', quantity: 1 });
@@ -158,10 +166,10 @@ it('confirma atomicamente, baixa estoque uma vez e remove somente as quantidades
   expect(confirmed.status).toBe('confirmed');
   expect(await a.orders.get(pending.id)).toEqual(confirmed);
   expect((await a.cart.get()).items[0].quantity).toBe(2);
-  expect(commerceA.read().catalog![0].editions[0].available).toBe(9);
+  expect(requireDefined(commerceA.read().catalog, 'catalog')[0].editions[0].available).toBe(9);
   const receipt = await a.orders.getReceipt(pending.id);
   update((state) => {
-    state.catalog![0].editions[0].priceEth = '99';
+    requireDefined(state.catalog, 'catalog')[0].editions[0].priceEth = '99';
   });
   expect(await a.orders.getReceipt(pending.id)).toEqual(receipt);
   expect(commerceA.read().attempts[`${alice}:${pending.attemptId}`].orderId).toBe(pending.id);
@@ -179,7 +187,7 @@ it('recupera timeout após criação e refresh sem duplicar pedido ou estoque', 
   const recovered = await a.orders.create(input, key);
   expect(recovered.status).toBe('confirmed');
   expect((await a.orders.list()).length).toBe(1);
-  expect(commerceA.read().catalog![0].editions[0].available).toBe(9);
+  expect(requireDefined(commerceA.read().catalog, 'catalog')[0].editions[0].available).toBe(9);
 });
 it('recusa pagamento de modo terminal sem alterar estoque ou carrinho', async () => {
   const input = await prepare();
@@ -189,7 +197,7 @@ it('recusa pagamento de modo terminal sem alterar estoque ou carrinho', async ()
   const refused = await a.orders.get(order.id);
   expect(refused).toMatchObject({ status: 'rejected', rejection: { code: 'PAYMENT_REFUSED' } });
   expect((await a.cart.get()).items[0].quantity).toBe(1);
-  expect(commerceA.read().catalog![0].editions[0].available).toBe(10);
+  expect(requireDefined(commerceA.read().catalog, 'catalog')[0].editions[0].available).toBe(10);
   await a.api.post('/__mock/checkout', { scenario: 'confirmed' });
   expect(await a.orders.get(order.id)).toEqual(refused);
   await expect(a.orders.getReceipt(order.id)).rejects.toMatchObject({ status: 409 });
@@ -209,16 +217,21 @@ it('disputa pela última unidade resulta em uma confirmação e uma recusa sob b
   expect(result.find((order) => order.status === 'rejected')).toMatchObject({
     rejection: { code: 'INSUFFICIENT_STOCK' },
   });
-  expect(
-    commerceA.read().catalog![0].editions.find((edition) => edition.id === 'edition-one')!.available
-  ).toBe(0);
+  const editionOne = requireDefined(
+    requireDefined(commerceA.read().catalog, 'catalog')[0].editions.find(
+      (edition) => edition.id === 'edition-one'
+    ),
+    'edition-one'
+  );
+  expect(editionOne.available).toBe(0);
 });
 it('exige nova revisão quando preço ou disponibilidade mudam e preserva snapshots de cotação', async () => {
   const input = await prepare();
   const original = await a.quotes.get(input.quoteId);
   update((state) => {
-    state.catalog![0].editions[0].priceEth = '2.19';
-    state.catalog![0].version++;
+    const firstNft = requireDefined(state.catalog, 'catalog')[0];
+    firstNft.editions[0].priceEth = '2.19';
+    firstNft.version++;
   });
   await expect(a.orders.create(input, crypto.randomUUID())).rejects.toMatchObject({
     status: 409,
@@ -234,8 +247,9 @@ it('exige nova revisão quando preço ou disponibilidade mudam e preserva snapsh
   expect(review.status).toBe('review-required');
   expect(review.totals.totalEth).toBe('2.206');
   update((state) => {
-    state.catalog![0].editions[0].priceEth = '3.19';
-    state.catalog![0].version++;
+    const firstNft = requireDefined(state.catalog, 'catalog')[0];
+    firstNft.editions[0].priceEth = '3.19';
+    firstNft.version++;
   });
   const changedAgain = await a.quotes.accept(review.id);
   expect(changedAgain.status).toBe('review-required');
@@ -248,8 +262,9 @@ it('exige nova revisão quando preço ou disponibilidade mudam e preserva snapsh
 it('limita quantidade com aceite explícito e bloqueia edição esgotada', async () => {
   const current = await a.cart.add({ nftId: 'nft-001', editionId: 'standard', quantity: 3 });
   update((state) => {
-    state.catalog![0].editions[0].available = 2;
-    state.catalog![0].version++;
+    const firstNft = requireDefined(state.catalog, 'catalog')[0];
+    firstNft.editions[0].available = 2;
+    firstNft.version++;
   });
   const review = await a.quotes.create({
     cartId: current.id,
@@ -262,8 +277,9 @@ it('limita quantidade com aceite explícito e bloqueia edição esgotada', async
   expect(accepted.status).toBe('valid');
   expect((await a.cart.get()).items[0].quantity).toBe(2);
   update((state) => {
-    state.catalog![0].editions[0].available = 0;
-    state.catalog![0].version++;
+    const firstNft = requireDefined(state.catalog, 'catalog')[0];
+    firstNft.editions[0].available = 0;
+    firstNft.version++;
   });
   expect((await a.quotes.accept(accepted.id)).status).toBe('unavailable');
 });
@@ -310,14 +326,17 @@ it('migra compras antigas da conta uma vez sem atribuir histórico visitante ou 
     status: 'completed' as const,
     walletName: 'MetaMask' as const,
   };
-  state.accounts.find((account) => account.user.id === alice)!.activity.push(old);
+  requireDefined(
+    state.accounts.find((account) => account.user.id === alice),
+    'alice account'
+  ).activity.push(old);
   state.guestActivity.push({ ...old, id: crypto.randomUUID() });
   authA.write(state);
   expect(await a.orders.list()).toHaveLength(1);
   expect(await a.orders.list()).toHaveLength(1);
   expect(await b.orders.list()).toHaveLength(0);
   expect((await a.orders.getReceipt(old.id)).transactionHash).toBe(old.transactionHash);
-  expect(commerceA.read().catalog![0].editions[0].available).toBe(10);
+  expect(requireDefined(commerceA.read().catalog, 'catalog')[0].editions[0].available).toBe(10);
 });
 
 it('revalida cupom expirado e exige aceite do total sem desconto', async () => {
@@ -348,17 +367,18 @@ it('falha de persistência não deixa baixa de estoque ou confirmação parcial'
   failWrite = true;
   await expect(a.orders.get(order.id)).rejects.toMatchObject({ status: 503 });
   expect(commerceA.read().orders[order.id].status).toBe('pending');
-  expect(commerceA.read().catalog![0].editions[0].available).toBe(10);
+  expect(requireDefined(commerceA.read().catalog, 'catalog')[0].editions[0].available).toBe(10);
   failWrite = false;
   expect((await a.orders.get(order.id)).status).toBe('confirmed');
-  expect(commerceA.read().catalog![0].editions[0].available).toBe(9);
+  expect(requireDefined(commerceA.read().catalog, 'catalog')[0].editions[0].available).toBe(9);
 });
 it('recusa preço alterado durante processamento e conserva o carrinho', async () => {
   const input = await prepare();
   const order = await a.orders.create(input, crypto.randomUUID());
   update((state) => {
-    state.catalog![0].editions[0].priceEth = '2.19';
-    state.catalog![0].version++;
+    const firstNft = requireDefined(state.catalog, 'catalog')[0];
+    firstNft.editions[0].priceEth = '2.19';
+    firstNft.version++;
   });
   now += 1001;
   expect(await a.orders.get(order.id)).toMatchObject({
@@ -366,5 +386,5 @@ it('recusa preço alterado durante processamento e conserva o carrinho', async (
     rejection: { code: 'QUOTE_CHANGED' },
   });
   expect((await a.cart.get()).items[0].quantity).toBe(1);
-  expect(commerceA.read().catalog![0].editions[0].available).toBe(10);
+  expect(requireDefined(commerceA.read().catalog, 'catalog')[0].editions[0].available).toBe(10);
 });

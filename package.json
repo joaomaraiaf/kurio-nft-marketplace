@@ -1,5 +1,5 @@
 {
-  "name": "jungle-nft-marketplace",
+  "name": "kurio-nft-marketplace",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,7 +7,7 @@
     "build": "pnpm typecheck && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "lint": "biome check .",
+    "lint": "biome check --error-on-warnings .",
     "lint:fix": "biome check --write .",
     "format:check": "biome format .",
     "format:fix": "biome format --write .",

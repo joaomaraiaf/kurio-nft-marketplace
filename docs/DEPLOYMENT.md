@@ -4,7 +4,7 @@ Destino padrão: Vercel, SPA Vite. `vercel.json` define instalação congelada, 
 
 ## Situação
 
-A aplicação está publicada na Vercel: [https://teste-jungle-gaming-59kluuver-joaomaraiafs-projects.vercel.app](https://teste-jungle-gaming-59kluuver-joaomaraiafs-projects.vercel.app). O deploy foi conferido na rota `/payment`. Após publicar novas revisões, registre o identificador da revisão e repita a validação das rotas públicas.
+A configuração de deploy na Vercel está pronta em `vercel.json` (incluindo headers de segurança, Service Worker sem cache e fallback SPA) para publicação em subdomínio próprio. Após publicar novas revisões, registre a URL pública, o SHA da revisão e repita a validação das rotas abaixo.
 
 ## Procedimento
 

@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { Check, ShoppingBag } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 import { Button } from '@/core/components/ui/button';
 import { Skeleton } from '@/core/components/ui/skeleton';
 import { formatWeiAsEth, parseEthToWei } from '@/features/cart/domain/entities/cart-totals';

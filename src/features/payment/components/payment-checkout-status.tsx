@@ -15,35 +15,33 @@ export function PaymentCheckoutStatus({
       aria-live='polite'
     >
       {checkout.attempt.attempt ? (
-        <>
-          {checkout.attempt.error ? (
-            <div role='alert' className='space-y-3 border border-[#D28A4C] p-4'>
-              <p>
-                Não foi possível consultar o resultado. Sua tentativa está salva; recupere o pedido
-                antes de iniciar outra compra.
-              </p>
-              <Button type='button' onClick={checkout.attempt.retry}>
-                Recuperar pedido
-              </Button>
-            </div>
-          ) : order?.status === 'rejected' ? (
-            <div role='alert' className='space-y-3 border border-[#D28A4C] p-4'>
-              <h2 className='font-bold'>Pedido recusado</h2>
-              <p>{order.rejection.message}</p>
-              <Button type='button' onClick={checkout.retryRejected}>
-                Revisar e tentar novamente
-              </Button>
-            </div>
-          ) : (
-            <p role='status'>
-              {order?.status === 'confirmed'
-                ? 'Pedido confirmado. Abrindo comprovante…'
-                : checkout.attempt.isRecovering
-                  ? 'Verificando o resultado da tentativa salva…'
-                  : 'Pedido pendente. Aguardando confirmação da carteira…'}
+        checkout.attempt.error ? (
+          <div role='alert' className='space-y-3 border border-[#D28A4C] p-4'>
+            <p>
+              Não foi possível consultar o resultado. Sua tentativa está salva; recupere o pedido
+              antes de iniciar outra compra.
             </p>
-          )}
-        </>
+            <Button type='button' onClick={checkout.attempt.retry}>
+              Recuperar pedido
+            </Button>
+          </div>
+        ) : order?.status === 'rejected' ? (
+          <div role='alert' className='space-y-3 border border-[#D28A4C] p-4'>
+            <h2 className='font-bold'>Pedido recusado</h2>
+            <p>{order.rejection.message}</p>
+            <Button type='button' onClick={checkout.retryRejected}>
+              Revisar e tentar novamente
+            </Button>
+          </div>
+        ) : (
+          <p role='status'>
+            {order?.status === 'confirmed'
+              ? 'Pedido confirmado. Abrindo comprovante…'
+              : checkout.attempt.isRecovering
+                ? 'Verificando o resultado da tentativa salva…'
+                : 'Pedido pendente. Aguardando confirmação da carteira…'}
+          </p>
+        )
       ) : (
         <>
           {checkout.quoteError && (

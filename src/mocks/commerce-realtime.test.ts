@@ -31,7 +31,9 @@ it('entrega order.updated via Socket.IO, filtra outra conta e ignora repetição
   });
   const owner = session.user.id;
   const state = mocks.authStore.read();
-  state.accounts.find((account) => account.user.id === owner)!.wallets.primary = {
+  const ownerAccount = state.accounts.find((account) => account.user.id === owner);
+  if (!ownerAccount) throw new Error('Missing owner account');
+  ownerAccount.wallets.primary = {
     displayName: 'Alice',
     walletAlias: 'Principal',
     network: 'ethereum',

@@ -28,7 +28,7 @@ export function NftPurchasePanel({
 }: NftPurchasePanelProps) {
   const [pageUrl, setPageUrl] = useState(`/market/${encodeURIComponent(nft.id)}`);
   useEffect(() => {
-    setPageUrl(window.location.href);
+    setPageUrl(new URL(`/market/${encodeURIComponent(nft.id)}`, window.location.origin).href);
   }, [nft.id]);
   const tokenId = nft.name.match(/#(\d+)/)?.[1]?.padStart(4, '0') ?? nft.id;
   const shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`;

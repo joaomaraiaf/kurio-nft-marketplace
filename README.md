@@ -1,56 +1,125 @@
-# Jungle NFT Marketplace
+# Kurio — NFT Marketplace
 
-Marketplace demonstrativo de NFTs criado para o [Frontend Challenge da Jungle Gaming](https://github.com/junglegaming/frontend-challenge). A aplicação cobre descoberta e filtragem de NFTs, detalhe do item, favoritos, carrinho, cotação, checkout recuperável, confirmação da compra e histórico da conta, em layouts desktop e mobile.
+[![CI](https://github.com/joaomaraiaf/kurio-nft-marketplace/actions/workflows/ci.yml/badge.svg)](https://github.com/joaomaraiaf/kurio-nft-marketplace/actions/workflows/ci.yml)
+[![Security](https://github.com/joaomaraiaf/kurio-nft-marketplace/actions/workflows/security.yml/badge.svg)](https://github.com/joaomaraiaf/kurio-nft-marketplace/actions/workflows/security.yml)
+[![Lighthouse](https://github.com/joaomaraiaf/kurio-nft-marketplace/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/joaomaraiaf/kurio-nft-marketplace/actions/workflows/lighthouse.yml)
 
-O frontend é uma SPA em React 19, TypeScript e Vite. Não há backend, blockchain, carteira externa ou pagamento real: Axios envia as requisições para a API local simulada pelo MSW, e eventos Socket.IO são simulados no navegador. A demonstração funciona sem conectar a serviços externos; os dados ficam no armazenamento local do navegador e não sincronizam entre dispositivos.
+Marketplace de NFTs construído em **React 19, TypeScript (strict), TanStack Router/Query e Tailwind CSS 4**, com foco em consistência de estado assíncrono, checkout idempotente recuperável, sincronização realtime multi-aba, acessibilidade e performance.
 
-## Executar
+> **Ambiente de demonstração autônomo:** toda a camada de API REST e eventos Socket.IO roda localmente no navegador via **MSW 2 + `@mswjs/socket.io-binding`**, sem dependências externas. O deploy está configurado para Vercel (pronto para publicação em subdomínio próprio — veja [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)).
 
-Requisitos: Node.js `>=22.19` e pnpm `11.5.2`.
+| Desktop (`1440×900`) | Mobile (`390×844`) |
+| :---: | :---: |
+| <img src="tests/visual-baselines/chromium-1440/inicio.png" alt="Kurio NFT Marketplace — Desktop" width="560" /> | <img src="tests/visual-baselines/chromium-390/inicio.png" alt="Kurio NFT Marketplace — Mobile" width="210" /> |
+
+---
+
+## Destaques de Engenharia
+
+- **Aritmética monetária sem ponto flutuante:** valores em ETH são trafegados como strings decimais e calculados com `bigint` em wei (`10^18`), garantindo precisão exata em subtotais, cupons em basis points e taxas estimadas (`src/features/cart/domain/entities/cart-totals.ts`).
+- **Checkout idempotente e recuperável:** a chave de idempotência e o payload são gravados antes do `POST /orders`; em caso de timeout (`504`) ou refresh da página, o cliente recupera o mesmo pedido sem duplicar cobrança ou baixa de estoque. Disputas de última unidade entre abas são serializadas com **Web Locks** e os recibos consultam snapshots imutáveis.
+- **Realtime multi-aba com proteção contra *race conditions*:** atualizações de preço, estoque e status de pedido trafegam por Socket.IO interceptado pelo MSW, descartam eventos duplicados ou com versão inferior, protegem callbacks atrasados contra troca de conta e reconciliam recursos ativos via REST na reconexão.
+- **Performance com pré-renderização pública no build Vite:** as rotas públicas (`/` e `/market/nft-001`) são pré-renderizadas em Node usando os mesmos componentes e handlers REST MSW, hidratando antes do Service Worker subir (`waitForTransport()` na camada HTTP/WS). Resultado auditado: **Lighthouse Performance 94/98 no mobile e 100/100 no desktop** (`CLS 0.0000`, `TBT ≤ 49 ms`) — [medianas em `docs/audits/lighthouse/summary.md`](docs/audits/lighthouse/summary.md).
+- **Qualidade, acessibilidade e supply-chain hardening:** Biome estrito (`--error-on-warnings`, `noExplicitAny`, `useExhaustiveDependencies`, `noNonNullAssertion`), **106 testes Vitest**, **117 testes E2E Playwright** (sem `waitForTimeout`), 12 baselines de regressão visual, matriz de acessibilidade com `axe-core`, CodeQL e proteções de supply chain no pnpm 11 (`minimumReleaseAge`, `blockExoticSubdeps`, `strictDepBuilds`).
+
+---
+
+## Arquitetura
+
+Arquitetura **Feature-first + Clean Architecture + MVVM** com fronteiras estritas: o domínio (`domain/`) não importa React, hooks ou infraestrutura, e `core/` não importa `features/`. Schemas **Zod** validam todas as bordas HTTP e WebSocket; rotas e diálogos pesados são carregados sob demanda.
+
+```mermaid
+flowchart LR
+  subgraph UI["Apresentação (React 19)"]
+    Route["Routes (TanStack Router)"] --> View["Views & Components"]
+    View --> VM["ViewModels / Hooks (TanStack Query + RHF)"]
+  end
+
+  subgraph Domain["Domínio Isolado"]
+    VM --> UC["UseCases & Entities (bigint wei)"]
+    UC --> RepoIface["Repository Interfaces"]
+  end
+
+  subgraph Data["Infraestrutura & Transporte"]
+    RepoIface -.-> HttpRepo["HTTP Repositories + Zod Schemas"]
+    HttpRepo --> Axios["AxiosAdapter (AbortSignal + waitForTransport)"]
+    VM --> Socket["Socket.IO Client (version/identity guard)"]
+  end
+
+  subgraph Mock["Backend Simulado (Browser)"]
+    Axios --> MSW["MSW REST Handlers"]
+    Socket --> WSBind["MSW Socket.IO Binding"]
+    MSW --> Store["Shared Store + Web Locks + BroadcastChannel"]
+    WSBind --> Store
+  end
+```
+
+```text
+src/
+  core/        HTTP (AxiosAdapter), realtime, layout desacoplado, UI base e ErrorBoundary global
+  features/    activity, auth, cart, catalog, favorites, market, orders, payment, profile, quotes, wallets
+  mocks/       MSW REST/Socket.IO, engine de cotação/pedidos, Web Locks e cenários determinísticos
+  routes/      definição de rotas TanStack Router, guards de sessão e composição lazy
+tests/         suíte Playwright E2E, acessibilidade (axe-core) e 12 baselines visuais
+docs/          ADRs, contratos REST/WS, validação reproduzível e cenários de demonstração
+guides/        guardrails modulares de engenharia e revisão (context engineering com AGENTS.md)
+```
+
+Decisões detalhadas em [ARCHITECTURE.md](ARCHITECTURE.md) e nos [ADRs](docs/ADRs/).
+
+---
+
+## Quickstart
+
+Requisitos: **Node.js `>= 22.19`** (`24` recomendado, definido em `.node-version`) e **pnpm `11.5.2`**.
 
 ```bash
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Abra [http://127.0.0.1:3002](http://127.0.0.1:3002). O comando `pnpm dev` usa o modo `mock`, que habilita MSW e Socket.IO localmente.
+Acesse [http://127.0.0.1:3002](http://127.0.0.1:3002). O modo `dev` inicia automaticamente os mocks locais (MSW + Socket.IO).
 
-### Variáveis de ambiente
+### Contas de demonstração
 
-| Variável | Padrão no modo mock | Uso |
-| --- | --- | --- |
-| `VITE_MOCKS_ENABLED` | `true` | Habilita o worker MSW; use `true` também no build de demonstração. |
-| `VITE_API_URL` | `/api` | Prefixo das chamadas REST interceptadas pelo MSW. |
-| `VITE_SOCKET_URL` | origem atual | Origem para o cliente Socket.IO; vazio usa a origem da aplicação. |
-
-As variáveis `VITE_*` são incluídas no bundle e não devem conter segredos. `.env.mock` configura a execução local; `.env.example` documenta os valores para configuração manual.
-
-## Funcionalidades
-
-- Catálogo com busca, filtros, ordenação, paginação e navegação para o detalhe do NFT.
-- Favoritos e carrinho de visitante ou de usuário, com seleção de edição e quantidade.
-- Conta local de demonstração, perfil e carteiras salvas para preencher o checkout.
-- Cotação revisável, cupons, conexão de carteira simulada e checkout idempotente recuperável após refresh.
-- Confirmação/recusa demonstrativa, recibo e histórico de compras.
-- Atualizações de catálogo, estoque, carrinho, cotação e pedidos entre abas do mesmo navegador.
-- Layout responsivo com as artes fornecidas no projeto e fonte Roboto Mono.
-
-A tela **Atividade** é uma extensão demonstrativa do histórico de compras. Integração com redes sociais, recuperação de senha, conexão real de carteira, transferência on-chain e pagamento real não fazem parte do fluxo implementado.
-
-## Conta e cenários de demonstração
-
-É possível criar uma conta fictícia pela interface. Há também duas contas de demonstração prontas:
+Também é possível criar uma nova conta local pela interface.
 
 | Usuário | E-mail | Senha |
 | --- | --- | --- |
-| AliceDemo | `alice@kurio.test` | `Kurio123!` |
-| BrunoDemo | `bruno@kurio.test` | `Kurio123!` |
+| `AliceDemo` | `alice@kurio.test` | `Kurio123!` |
+| `BrunoDemo` | `bruno@kurio.test` | `Kurio123!` |
 
-Contas e perfil ficam no armazenamento local por até 7 dias; a sessão de cada aba dura até 24 horas. As senhas de demonstração são armazenadas com hash e salt, e não representam autenticação segura para produção.
+### Comandos principais
 
-Os controles abaixo devem ser executados no console do navegador com a aplicação aberta. Eles são interceptados pelo MSW daquela aba; não use `curl` ou `page.request`, pois esses processos não compartilham o estado mockado do browser.
+```bash
+pnpm lint                # Biome (--error-on-warnings)
+pnpm typecheck           # TypeScript strict (tsc --noEmit)
+pnpm test                # Vitest (unitários e integração)
+pnpm test:cov            # Vitest com relatório de cobertura V8
+pnpm build:mock          # typecheck + build com pré-renderização pública e MSW
+pnpm test:e2e            # suíte E2E Playwright (Chromium desktop/mobile/tablet)
+pnpm test:visual         # regressão visual contra as 12 baselines
+pnpm audit:lighthouse    # 12 auditorias Lighthouse (mobile e desktop)
+pnpm generate <feature>  # scaffold de nova feature seguindo os padrões do projeto
+```
 
-Defina este helper no console para configurar os controles. Se recarregar a página, defina-o novamente, pois a função vive apenas no contexto atual:
+---
+
+## Trade-offs e Limitações (vs. Produção com Backend Real)
+
+Esta aplicação é uma **SPA demonstrativa autocontida** — não há servidor backend, blockchain real ou gateway de pagamento. Ao conectar o frontend a uma API real, o plano de transição é direto graças ao isolamento em `data/` e `core/api/`:
+
+- **Autenticação e sessão:** hoje contas e perfis ficam em `localStorage` (PBKDF2 com salt) e a sessão por aba em `sessionStorage`. Em produção, a sessão deve migrar para cookies `HttpOnly` + `Secure` + `SameSite=Lax` com proteção CSRF e revogação server-side.
+- **Desacoplamento dos mocks:** basta compilar com `pnpm build` (`VITE_MOCKS_ENABLED=false`) e apontar `VITE_API_URL` e `VITE_SOCKET_URL` para a API/gateway real; o bundle de produção exclui o bootstrap do MSW.
+- **CSP estrita:** `vercel.json` aplica headers de hardening (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`). Para habilitar `Content-Security-Policy` sem `'unsafe-inline'`, os scripts inline de preload/hidratação de snapshot em `index.html` e `scripts/public-catalog-snapshot.ts` seriam movidos para arquivos externos ou assinados com nonce/hash no edge.
+- **Realtime entre dispositivos:** `BroadcastChannel` e Web Locks sincronizam apenas abas da mesma origem no mesmo navegador; em produção, o servidor Socket.IO assume rooms autenticadas e pub/sub distribuído (ex.: Redis adapter).
+
+---
+
+<details>
+<summary><strong>Simulação de falhas de rede, concorrência e cenários de checkout (Console)</strong></summary>
+
+Com a aplicação aberta no navegador, o MSW expõe endpoints `/api/__mock/*` para testar cenários determinísticos sem ferramentas externas:
 
 ```js
 window.setMockControl = async (control, payload) => {
@@ -61,139 +130,23 @@ window.setMockControl = async (control, payload) => {
   });
   if (!response.ok) throw new Error(`Controle mock falhou: ${response.status}`);
 };
+
+// Exemplos rápidos:
+await setMockControl('reset', { scenario: 'slow' });          // latência de 1,5s no catálogo
+await setMockControl('checkout', { scenario: 'refused' });    // recusa terminal de pagamento
+await setMockControl('checkout', { scenario: 'timeout-after-create' }); // timeout 504 recuperável
+await setMockControl('auth/expire-session', {});              // expiração de sessão com retomada
+await setMockControl('reset', { scenario: 'default' });       // restaurar estado inicial
 ```
 
-### Catálogo e falhas de rede
+Consulte o guia completo de cenários, cupons (`KURIO10`, `EXPIRADO`), gates de rede e eventos realtime em [`docs/DEMO_SCENARIOS.md`](docs/DEMO_SCENARIOS.md).
 
-Os cenários de catálogo são `default`, `empty`, `slow` (1,5 s), `server-error` (503), `network-error` e `out-of-order` (latências alternadas). Selecione um e recarregue a página para observar o carregamento:
+</details>
 
-```js
-await setMockControl('reset', { scenario: 'slow' });
-location.reload();
-```
+## Documentação Adicional
 
-Para falhar a consulta inicial e as três tentativas automáticas do catálogo com HTTP 503, configure quatro ocorrências e recarregue. Depois, tente novamente na interface para verificar a recuperação:
-
-```js
-await setMockControl('network', {
-  rules: [{ path: '/nfts', method: 'GET', status: 503, times: 4 }],
-});
-location.reload();
-```
-
-Use `status: 0` para simular falha de conexão, ou `delayMs: 1500` com `status: 200` para atrasar a resposta normal. Para manter uma requisição parada até liberá-la, configure `gate: 'catalogo'`, recarregue a página e, depois que ela abrir, libere a requisição com `await setMockControl('network/release', { gate: 'catalogo' })`. Regras de rede são consumidas por requisição e persistem no `sessionStorage` da aba até serem consumidas ou substituídas; `times` aceita de 1 a 10.
-
-Os status simulados incluem 401, 403, 404, 409, 422 e 503. `path` é relativo à API: por exemplo, `'/cart'`, `'/quotes'`, `'/favorites'` ou `'/nfts/nft-001'`. Use `method` para selecionar `GET`, `POST`, `PUT` ou `DELETE`.
-
-### Favoritos, carrinho e sessão
-
-Para testar rollback após uma falha de mutation, configure a falha e então favorite/remova um NFT ou altere o carrinho:
-
-```js
-await setMockControl('commerce/failure', {
-  resource: 'favorites', // ou 'cart'
-  delayMs: 1000,
-  status: 503, // use 0 para falha de conexão
-});
-```
-
-Esse controle falha a próxima mutation do recurso selecionado; leituras não consomem a falha. Para testar sessão expirada, estando autenticado, execute o controle e tente abrir uma área privada ou continuar o checkout:
-
-```js
-await setMockControl('auth/expire-session', {});
-```
-
-Cadastro duplicado também reproduz conflito de validação: tente cadastrar novamente `alice@kurio.test` ou `bruno@kurio.test`.
-
-### Checkout, preço e estoque
-
-Configure o resultado antes de iniciar uma nova compra. Os cenários de checkout são `confirmed`, `refused`, `timeout-after-create` e `last-unit`:
-
-```js
-await setMockControl('checkout', { scenario: 'refused' });
-```
-
-`refused` demonstra recusa do pedido. `timeout-after-create` persiste a tentativa e responde com timeout; depois de atualizar a página, o checkout deve recuperar o mesmo pedido pela chave de idempotência. `last-unit` deixa uma unidade da edição `edition-one` do `nft-001`; duas abas podem competir pela unidade para observar uma confirmação e uma recusa. Para atrasar o resultado e observar o estado pendente, use `{ resolveAfterMs: 5000 }`. Para simular recusa da conexão de carteira, use `{ refuseConnection: true }`.
-
-Para alterar o preço ou esgotar uma edição durante a navegação, publique uma atualização pelo controle de NFT. O mock atualiza o mesmo store do REST e envia `nft.updated` pelo cliente Socket.IO:
-
-```js
-await fetch('/api/__mock/nfts/nft-001', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ editionId: 'edition-one', priceEth: '2.25', available: 0 }),
-});
-```
-
-Adicione o NFT ao carrinho antes de enviar essa atualização para verificar o aviso, o resumo atualizado e o bloqueio do checkout desatualizado. No pagamento, `KURIO10` aplica o desconto; `EXPIRADO` cobre cupom expirado e outro código cobre cupom inválido. Para expirar/restaurar `KURIO10` no controle de cotação, use `await setMockControl('checkout', { expireCoupon: true })` ou `{ expireCoupon: false }`.
-
-### Reset
-
-O reset global restaura fixtures, contas de demonstração e estado de comércio, limpa regras de latência/falha, invalida sessões e encerra sockets. Execute-o ao terminar os cenários e recarregue a página; será necessário entrar novamente:
-
-```js
-await setMockControl('reset', { scenario: 'default' });
-location.reload();
-```
-
-Os payloads completos e os limites de cada controle estão nos [contratos da API e eventos](docs/API_CONTRACTS.md) e nos [contratos de comércio](docs/COMMERCE_CONTRACTS.md). Os cenários são determinísticos e exclusivos dos mocks.
-
-### MSW e Socket.IO
-
-Usamos MSW 2 (`msw@2.15.0`), compatível com o peer dependency declarado por `@mswjs/socket.io-binding@0.2.0`. O binding disponível é para MSW 2; a versão também é compatível com as ferramentas de teste instaladas. A documentação do repositório do binding pode acompanhar uma API diferente da versão publicada, então a integração deve ser conferida contra os exports instalados.
-
-O transporte de eventos é WebSocket nativo via Socket.IO client, interceptado pelo `ws` do MSW e pelo binding `@mswjs/socket.io-binding`. A inicialização espera o worker MSW antes de carregar o cliente. REST e eventos leem e atualizam o mesmo estado mockado.
-
-O ambiente simula somente o protocolo necessário ao desafio. Não cobre HTTP long-polling, upgrade de polling, rooms ou paridade completa com um servidor Socket.IO. Reconexão, eventos e sincronização funcionam entre abas da mesma origem e perfil de navegador; não testam uma rede real nem sincronizam dispositivos.
-
-## Comandos
-
-```bash
-pnpm dev                 # aplicação local com MSW
-pnpm lint                # Biome
-pnpm typecheck           # TypeScript
-pnpm test                # Vitest: unitários e integração
-pnpm test:cov            # Vitest com cobertura
-pnpm build:mock          # valida tipos e cria build com MSW
-pnpm preview:mock        # serve o build de demonstração
-pnpm exec playwright install chromium
-pnpm test:e2e            # fluxos E2E em Chromium
-pnpm test:e2e:safari     # regressão em WebKit/Safari; requer instalar WebKit
-pnpm test:visual         # compara as 12 baselines visuais
-pnpm audit:lighthouse    # audita início e detalhe em mobile e desktop
-pnpm verify:clean        # reprodução de instalação e verificações em cópia limpa
-pnpm generate catalog   # cria o esqueleto de uma feature
-```
-
-O Playwright inicia seu próprio build/preview na porta `3102` (`PLAYWRIGHT_PORT` permite alterá-la); não usa o servidor de desenvolvimento na porta `3002`. A matriz cobre desktop e mobile, com verificações adicionais em tablet. Os testes de rede usam MSW e os sockets simulados, sem API externa.
-
-Na última execução documentada, Vitest passou com 101 testes em 26 arquivos e Playwright passou com 117 testes; 9 casos foram ignorados por não se aplicarem à variante de viewport. As 12 comparações visuais passaram sem atualizar baselines. As 12 auditorias Lighthouse atingiram todas as metas: medianas de Performance 94/98 no mobile e 100/100 no desktop (início/detalhe). A cópia limpa reproduziu instalação, checks, build e smoke, com o mesmo hash do build auditado. Consulte as [evidências e condições de validação](docs/VALIDATION.md), os [relatórios Lighthouse](docs/audits/README.md) e a [decisão de pré-renderização pública](docs/ADRs/0007-pre-renderizacao-publica-e-inicializacao.md).
-
-## Estrutura e arquitetura
-
-```text
-src/
-  core/        infraestrutura compartilhada, layout, HTTP e realtime
-  features/    catálogo, mercado, carrinho, autenticação, pagamento e demais features
-  mocks/       worker MSW, handlers REST/Socket.IO, estado e cenários
-  routes/      rotas TanStack Router e composição das views
-  styles/      estilos e tokens globais
-tests/         fluxos Playwright e baselines visuais
-docs/          contratos, decisões, matriz de requisitos e evidências
-guides/        regras de implementação por tarefa
-```
-
-Cada feature mantém suas entidades e contratos em `domain/`, e schemas, DTOs e implementações em `data/`. O domínio não depende de React ou infraestrutura; views são compostas por componentes e hooks/ViewModels. Leia [ARCHITECTURE.md](ARCHITECTURE.md) para as decisões implementadas, [AGENTS.md](AGENTS.md) para as instruções de trabalho e os guias relevantes em [`guides/`](guides/).
-
-## CI e publicação
-
-GitHub Actions executam lint, tipos, Vitest, build mock, Playwright, auditoria de dependências, CodeQL e Lighthouse. Os workflows e os checks recomendados para as branches estão descritos em [CI](docs/CI.md).
-
-A configuração para Vercel usa `pnpm build:mock`, publica `dist` e habilita o fallback SPA por rota. A aplicação está publicada em [teste-jungle-gaming-59kluuver-joaomaraiafs-projects.vercel.app](https://teste-jungle-gaming-59kluuver-joaomaraiafs-projects.vercel.app/); a rota de pagamento foi conferida no deploy. Consulte o [procedimento de publicação](docs/DEPLOYMENT.md) para validar rotas após novas publicações.
-
-## Referências
-
-- [Contratos REST e eventos](docs/API_CONTRACTS.md) e [contratos de comércio](docs/COMMERCE_CONTRACTS.md)
-- [Validação reproduzível](docs/VALIDATION.md) e [auditorias](docs/audits/README.md)
-- [Decisões ADR](docs/ADRs/)
-- [Publicação na Vercel](docs/DEPLOYMENT.md)
+- [Arquitetura](ARCHITECTURE.md) e [ADRs](docs/ADRs/)
+- [Contratos REST e Socket.IO](docs/API_CONTRACTS.md) · [Contratos de comércio](docs/COMMERCE_CONTRACTS.md)
+- [Cenários de demonstração](docs/DEMO_SCENARIOS.md) · [Validação reproduzível](docs/VALIDATION.md)
+- [Auditorias Lighthouse](docs/audits/README.md) · [CI e proteção de branches](docs/CI.md) · [Deploy na Vercel](docs/DEPLOYMENT.md)
+- [AGENTS.md](AGENTS.md) e [guias modulares](guides/)

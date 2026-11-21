@@ -34,14 +34,14 @@ Os testes não usam `waitForTimeout`. Esperam estado visível, resposta de rede 
 
 ## Última execução funcional
 
-Lint e tipos passaram. Vitest: **101 testes em 26 arquivos**. Playwright completo: **117 aprovados, 9 ignorados por variante de viewport, zero falhas**, com `pnpm exec playwright test --workers=2 --reporter=line`. O resumo desta execução está em [validation-summary.json](audits/validation-summary.json); o HTML funcional versionado registra a execução anterior.
+Lint e tipos passaram. Vitest: **102 testes em 26 arquivos**. Playwright completo: **117 aprovados, 9 ignorados por variante de viewport, zero falhas**, com `pnpm exec playwright test --workers=2 --reporter=line`. Relatórios HTML são gerados localmente (`playwright-report/`) e publicados como artefatos no CI.
 
 `startup.e2e.ts` bloqueia os módulos JavaScript, verifica o conteúdo público e libera os módulos para verificar hidratação sem erros e revalidação REST. Helpers de rede aguardam `data-transport-ready`, em vez de assumir que conteúdo visível implica interceptação pronta. Testes de armazenamento impedem o uso do snapshot em cenários persistidos.
 
-Regressão visual: **12 comparações aprovadas em 390/768/1440**, sem atualizar baselines. [Relatório visual HTML atualizado](audits/visual/index.html).
+Regressão visual: **12 comparações aprovadas em 390/768/1440**, sem atualizar baselines.
 
 ## Reprodução limpa concluída
 
-`pnpm verify:clean` instalou as 440 dependências do lockfile sem copiar node_modules/dist e sem downloads adicionais (cache pnpm reutilizado). Lint, tipos, 101 testes, build, preview e dois smokes de compra/rotas/duas abas passaram. O hash do build da cópia limpa coincide com a série Lighthouse final. [Registro dos passos](audits/clean-checkout.json) e [log](audits/clean-checkout.log).
+`pnpm verify:clean` instalou as 440 dependências do lockfile sem copiar node_modules/dist e sem downloads adicionais (cache pnpm reutilizado). Lint, tipos, testes, build, preview e dois smokes de compra/rotas/duas abas passaram. O hash do build da cópia limpa coincide com a série Lighthouse final.
 
 O smoke Lighthouse retornou **0**, com todas as metas aprovadas. A série final de **12 auditorias** também retornou **0**, com Performance 94/98 no mobile e 100/100 no desktop. [Medianas e condições](audits/lighthouse/summary.md). Essa validação é local; não substitui a execução da pipeline nem os testes de uma URL publicada.

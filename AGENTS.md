@@ -7,7 +7,6 @@ Documentação por tarefa: carregue apenas os guias relevantes em `guides/`.
 - Use **pnpm 11.5.2**, nunca npm/yarn. Node.js >= 22.19 (24 recomendado para as auditorias).
 - Feature-first + Clean Architecture + MVVM. O domínio não importa `data/`, hooks, React ou componentes.
 - Comece novas features com `pnpm generate <nome>`; o generator cria apenas as pastas, sem CRUD fictício.
-- Não há mais uma feature `users` de referência. Siga os guias e implemente somente o escopo do marketplace.
 - Não edite manualmente `node_modules/`, `dist/` ou `pnpm-lock.yaml`. Atualizações de dependências usam pnpm e geram o lockfile.
 - Preserve as proteções de supply chain em `pnpm-workspace.yaml` e pnpm >= 11.
 - Antes de programar, leia o guia da tarefa.
@@ -32,7 +31,7 @@ Documentação por tarefa: carregue apenas os guias relevantes em `guides/`.
 
 React 19 · TypeScript · Vite · TanStack Router/Query · Axios · Tailwind CSS 4 · shadcn/ui · RHF/Zod · Biome · Vitest/Playwright.
 
-MSW e Socket.IO são iniciados em `src/mocks/`; os DTOs e schemas ficam em `src/features/*/data/` e os contratos REST/eventos estão em `docs/API_CONTRACTS.md`. Leia esse documento ao integrar dados/eventos. Fluxos do marketplace, testes funcionais e baselines visuais estão implementados. Relatórios Lighthouse estão em `docs/audits/`; as metas estão atingidas na auditoria versionada. A configuração da Vercel está em `vercel.json` e a aplicação está publicada; consulte `docs/DEPLOYMENT.md` para a URL e a validação de rotas.
+MSW e Socket.IO são iniciados em `src/mocks/`; os DTOs e schemas ficam em `src/features/*/data/` e os contratos REST/eventos estão em `docs/API_CONTRACTS.md`. Leia esse documento ao integrar dados/eventos. Fluxos do marketplace, testes funcionais e baselines visuais estão implementados. O resumo das auditorias Lighthouse está em `docs/audits/lighthouse/summary.md` (relatórios completos são gerados sob demanda e no CI). A configuração da Vercel está em `vercel.json` e a publicação está documentada em `docs/DEPLOYMENT.md`.
 
 ## Comandos
 

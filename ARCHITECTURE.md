@@ -36,7 +36,6 @@ Autenticação, contas, eventos e pagamentos são simulados. Login social, recup
 
 ## Validação e publicação
 
-- Requisitos: [docs/REQUIREMENTS_MATRIX.md](docs/REQUIREMENTS_MATRIX.md)
 - Contratos REST/eventos e de comércio: [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md), [docs/COMMERCE_CONTRACTS.md](docs/COMMERCE_CONTRACTS.md)
 - Decisões: [docs/ADRs/](docs/ADRs/)
 - Testes, baselines e condições: [docs/VALIDATION.md](docs/VALIDATION.md)

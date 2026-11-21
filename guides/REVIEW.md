@@ -10,4 +10,4 @@ Classifique achados acionáveis com arquivo/linha, impacto e correção:
 
 Confira domínio isolado; View → hook → usecase → repository; Axios centralizado; Zod nas bordas; isolamento por usuário; limpeza de listeners; estados de loading/vazio/erro; teclado/foco; tipos, lint, testes e build.
 
-Não exija tracing, Next, backend real, CRUD administrativo ou convenções removidas. Requisitos específicos do desafio orientam as próximas features.
+Não exija tracing, Next, backend real, CRUD administrativo ou convenções fora do escopo documentado em [ARCHITECTURE.md](../ARCHITECTURE.md).
